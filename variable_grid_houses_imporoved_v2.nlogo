@@ -7,9 +7,9 @@ globals
   grid-size           ;; the amount of patches in between two roads in the x direction
   year
   month
-  year-duration
   roads         ;; agentset containing the patches that are roads
   parcels
+  year-duration
   percentage    ;;list that keeps track of the percentage that the selling price is of the initial sale price
   amount-negotiations ;;list that keeps track of the percentage that the selling price is of the initial sale price
   total-moves
@@ -110,7 +110,7 @@ to setup-globals
   set month 1 ;;start in first month
   set year 1;;
   set loan-duration loan-duration
-  set year-duration 26 ;;ticks, one tick is two weeks
+  set year-duration 24 ;;two ticks per month
   set grid-size world-width / gridslider
   set grid-size world-height / gridslider
 end
@@ -269,7 +269,7 @@ to go
   tick ;; to model the two week per tick a tick is placed here
 
   ;;select available houses of which the competition is not already saturated
-  let houses-for-sale houses with [ for-sale? and length offered-to < max-competitors-for-one-house ]
+  let houses-for-sale houses with [ for-sale? ]
 ;    and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
 
   ;;owners without a house get express their interest in a new house first
@@ -278,7 +278,7 @@ to go
    ]
 
   ;;check agian for the houses with saturated competition
-  set houses-for-sale houses with [for-sale? and length offered-to < max-competitors-for-one-house ]
+  set houses-for-sale houses with [for-sale?]
   ;;and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
 
   ;;subsequently, owners that want to move but still have a house in possesion get to express their interest
@@ -313,16 +313,17 @@ end
 
 to negotiate ;;procedure for the negotiations turtle set, try to reach an agreement
   let duration (ticks - start-date)
-  let testperson one-of turtle-set buyers
+  let testperson nobody
   let overbidding buyer-strategy = "overbidding"
+  if overbidding [set testperson one-of turtle-set buyers ]
   let isp initial-sale-price
   let underbidding buyer-strategy = "underbidding"
+  if overbidding [set testperson one-of turtle-set buyers ]
+  let nothing buyer-strategy = "nothing specific"
   ;;first, buyers that are competing in this negotiation and did not make an initial offer should make one first.
   let newcomers turtle-set buyers
   ask newcomers with [price-offered = 0]
   [
-    ;;generate sale prices based on a normal distribution with mean initial sale price and sd a variable part of the sale price
-    ;;if the buyer is the expirimental one, adjust offers accordingly
     ifelse (self = testperson) [
         if overbidding [
            set price-offered isp + abs(isp - random-normal isp (isp / (4 + random 10)))
@@ -334,6 +335,7 @@ to negotiate ;;procedure for the negotiations turtle set, try to reach an agreem
     [
       set price-offered random-normal  isp (isp / (4 + random 10)) ;;make initial bid
     ]
+
   ]
   ;for the first negotiation cycle initial offering and asking prices are established
   ifelse (price-asked = 0)
@@ -341,7 +343,8 @@ to negotiate ;;procedure for the negotiations turtle set, try to reach an agreem
     ifelse is-owner? seller
     [ ;;if the house has an current owner, let them determine asking price. Since it concerns a bidding war, let the sale price be above value of the house
 
-      set price-asked initial-sale-price + abs(initial-sale-price - random-normal initial-sale-price (initial-sale-price / (4 + random 10)))
+;      set price-asked initial-sale-price + abs(initial-sale-price - random-normal initial-sale-price (initial-sale-price / (4 + random 10)))
+      set price-asked  random-normal initial-sale-price (initial-sale-price / (4 + random 10))
     ]
       ;;if not an owner just take the sale price as a starting point in the  negotiation
     [
@@ -504,8 +507,8 @@ to save-interesting-houses [available-houses] ;;owner procedure
   ;;see if any houses fit the critera
   if any? interesting-houses
   [
-    let potential-new-house one-of interesting-houses with [length offered-to < max-competitors-for-one-house]
-    if (is-house? potential-new-house and not (potential-new-house = my-house))
+    let potential-new-house one-of interesting-houses
+    if (is-house? potential-new-house and not (potential-new-house = my-house) and (length [offered-to] of potential-new-house < max-competitors-for-one-house ))
     [
       ask potential-new-house
       [
@@ -605,9 +608,9 @@ ticks
 
 PLOT
 643
-18
+48
 861
-182
+212
 Percentage from asking price
 %
 #
@@ -623,9 +626,9 @@ PENS
 
 PLOT
 643
-246
+276
 859
-411
+441
 House price distribution
 €
 NIL
@@ -640,10 +643,10 @@ PENS
 "For sale" 1.0 0 -7500403 true "" ""
 
 SLIDER
-12
-35
-106
-68
+11
+75
+105
+108
 gridslider
 gridslider
 1
@@ -655,10 +658,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-309
-35
-373
-68
+311
+49
+375
+82
 Go
 go
 T
@@ -672,10 +675,10 @@ NIL
 0
 
 BUTTON
-211
-35
-295
-68
+213
+49
+297
+82
 Setup
 setup
 NIL
@@ -689,10 +692,10 @@ NIL
 1
 
 SLIDER
-13
-82
-185
+11
 115
+183
+148
 initial-occupation
 initial-occupation
 10
@@ -705,9 +708,9 @@ HORIZONTAL
 
 SLIDER
 13
-127
+157
 209
-160
+190
 initial-house-occupation
 initial-house-occupation
 10
@@ -720,9 +723,9 @@ HORIZONTAL
 
 PLOT
 658
-427
+457
 858
-577
+607
 Houses
 NIL
 NIL
@@ -740,9 +743,9 @@ PENS
 
 BUTTON
 311
-78
+94
 375
-111
+127
 Go 1x
 go
 NIL
@@ -757,9 +760,9 @@ NIL
 
 SLIDER
 13
-172
+202
 185
-205
+235
 loan-duration
 loan-duration
 15
@@ -772,9 +775,9 @@ HORIZONTAL
 
 MONITOR
 658
-191
+221
 846
-236
+266
 Total amount of house switches
 total-moves
 17
@@ -783,24 +786,24 @@ total-moves
 
 SLIDER
 15
-215
+245
 187
-248
+278
 max-amount-houses
 max-amount-houses
 1
 10
-5.0
+8.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-15
-262
-281
-295
+16
+292
+282
+325
 max-negotiations-per-tick
 max-negotiations-per-tick
 0
@@ -813,14 +816,14 @@ HORIZONTAL
 
 SLIDER
 16
-308
+338
 188
-341
+371
 price-gap
 price-gap
 0
 5000
-2500.0
+1500.0
 500
 1
 NIL
@@ -828,9 +831,9 @@ HORIZONTAL
 
 PLOT
 387
-19
+49
 633
-169
+199
 Number of negotiations in this cycle
 NIL
 occurences
@@ -846,24 +849,24 @@ PENS
 
 SLIDER
 430
-169
+199
 602
-202
+232
 display-last-x-cycles
 display-last-x-cycles
 10
 100
-80.0
+65.0
 5
 1
 NIL
 HORIZONTAL
 
 MONITOR
-215
-127
-296
-172
+214
+147
+295
+192
 month
 month
 0
@@ -872,9 +875,9 @@ month
 
 MONITOR
 215
-75
+91
 272
-120
+136
 year
 year
 17
@@ -883,19 +886,19 @@ year
 
 CHOOSER
 430
-214
+240
 568
-259
+285
 buyer-strategy
 buyer-strategy
 "nothing specific" "overbidding" "underbidding"
-0
+1
 
 SLIDER
 215
-176
+206
 387
-209
+239
 mean-income
 mean-income
 20000
@@ -908,9 +911,9 @@ HORIZONTAL
 
 SLIDER
 214
-219
+249
 386
-252
+282
 mean-savings
 mean-savings
 5000
@@ -923,11 +926,26 @@ HORIZONTAL
 
 SLIDER
 16
-350
+380
 208
-383
+413
 max-amount-negotiations
 max-amount-negotiations
+1
+10
+7.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+197
+338
+423
+371
+max-competitors-for-one-house
+max-competitors-for-one-house
 1
 10
 5.0
@@ -937,70 +955,40 @@ NIL
 HORIZONTAL
 
 SLIDER
-197
-308
-423
-341
-max-competitors-for-one-house
-max-competitors-for-one-house
-1
-10
-6.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
 232
-351
+381
 404
-384
+414
 buyers-lower-limit
 buyers-lower-limit
 .75
 1
-0.9
+0.75
 .05
 1
 NIL
 HORIZONTAL
 
 SLIDER
-434
-351
-606
-384
+426
+382
+598
+415
 buyers-upper-limit
 buyers-upper-limit
 1
 1.25
-1.15
+1.25
 .05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-327
-272
-499
-305
-overbid-percentaage
-overbid-percentaage
-0
-50
-18.0
-1
 1
 NIL
 HORIZONTAL
 
 SWITCH
 446
-310
+340
 627
-343
+373
 moving-in-and-out-city
 moving-in-and-out-city
 0
@@ -1008,20 +996,20 @@ moving-in-and-out-city
 -1000
 
 TEXTBOX
-502
-258
-652
-310
+19
+12
+176
+77
 Property bidding model for the\nDutch housing market\nA.H. (Bart) Ziengs\nDelft University of Technology
-10
+11
 0.0
 1
 
 MONITOR
-303
-127
-381
-172
+302
+147
+380
+192
 succes rate
 (test-person-succes / total-moves) / 0.01
 17
@@ -1029,10 +1017,10 @@ succes rate
 11
 
 SLIDER
-254
-394
-462
-427
+325
+289
+533
+322
 city-entry-and-leave-rate
 city-entry-and-leave-rate
 0
@@ -1045,9 +1033,9 @@ HORIZONTAL
 
 SLIDER
 16
-394
+424
 243
-427
+457
 minimal-owner-living-period
 minimal-owner-living-period
 1
@@ -1059,25 +1047,25 @@ years
 HORIZONTAL
 
 SLIDER
-16
-438
-237
-471
+163
+468
+384
+501
 moving-up-income-repayment
 moving-up-income-repayment
 1
 6
-3.9
+3.6
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-255
-438
-486
-471
+253
+425
+484
+458
 moving-down-income-repayment
 moving-down-income-repayment
 0.5
