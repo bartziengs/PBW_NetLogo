@@ -269,8 +269,8 @@ to go
   tick ;; to model the two week per tick a tick is placed here
 
   ;;select available houses of which the competition is not already saturated
-  let houses-for-sale houses with [ for-sale? and length offered-to < max-competitors-for-one-house ]
-;    and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
+  let houses-for-sale houses with [ for-sale? and length offered-to < max-competitors-for-one-house
+ and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
 
   ;;owners without a house get express their interest in a new house first
   ask owners with [ not(is-house? my-house) ] [
@@ -278,8 +278,7 @@ to go
    ]
 
   ;;check agian for the houses with saturated competition
-  set houses-for-sale houses with [for-sale? and length offered-to < max-competitors-for-one-house ]
-  ;;and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
+  set houses-for-sale houses with [for-sale? and length offered-to < max-competitors-for-one-house and ticks-since-last-buy < (minimal-owner-living-period * 24) ]
 
   ;;subsequently, owners that want to move but still have a house in possesion get to express their interest
   ask owners with [ (is-house? my-house) and ([ for-sale? ] of my-house) and not (is-house? wants-to-buy) ] [
@@ -889,7 +888,7 @@ CHOOSER
 buyer-strategy
 buyer-strategy
 "nothing specific" "overbidding" "underbidding"
-0
+1
 
 SLIDER
 215
